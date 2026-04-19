@@ -39,7 +39,7 @@ curl -fsSL \
   "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
   -o awscliv2.zip
 
-dnf install -y unzip
+dnf5 install -y unzip
 unzip -q awscliv2.zip
 
 ./aws/install \
@@ -50,12 +50,7 @@ unzip -q awscliv2.zip
 ############################
 # Session Manager Plugin
 ############################
-
-curl -fsSL \
-  "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_x86_64/session-manager-plugin.rpm" \
-  -o session-manager-plugin.rpm
-
-dnf install -y ./session-manager-plugin.rpm
+dnf5 install -y https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm
 
 ############################
 # Cleanup
@@ -63,7 +58,7 @@ dnf install -y ./session-manager-plugin.rpm
 
 cd /
 rm -rf "$TMPDIR"
-dnf clean all
+dnf5 clean all
 
 
 install -Dm0644 files/ujust/onedrive.just /usr/share/ujust/onedrive
