@@ -78,4 +78,4 @@ rm -rf "$TMPDIR"
 dnf5 clean all
 
 
-install -Dm0644 files/ujust/onedrive.just /usr/share/ujust/onedrive
+install -Dm0644 /ctx/files/ujust/onedrive.just /usr/share/ujust/onedrive
