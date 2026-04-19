@@ -19,7 +19,14 @@ dnf5 install -y microsoft-edge-stable --setopt=tsflags=noscripts
 dnf5 install -y onedrive
 
 # edge as default browser 
-xdg-settings set default-web-browser microsoft-edge.desktop || true
+mkdir -p /etc/xdg
+
+cat > /etc/xdg/mimeapps.list <<'EOF'
+[Default Applications]
+x-scheme-handler/http=microsoft-edge.desktop
+x-scheme-handler/https=microsoft-edge.desktop
+text/html=microsoft-edge.desktop
+EOF
 
 TMPDIR="$(mktemp -d)"
 cd "$TMPDIR"
@@ -36,8 +43,8 @@ dnf install -y unzip
 unzip -q awscliv2.zip
 
 ./aws/install \
-  --bin-dir /usr/local/bin \
-  --install-dir /usr/local/aws-cli \
+  --bin-dir /usr/bin \
+  --install-dir /usr/lib/aws-cli \
   --update
 
 ############################
