@@ -56,3 +56,6 @@ dnf install -y ./session-manager-plugin.rpm
 cd /
 rm -rf "$TMPDIR"
 dnf clean all
+
+
+install -Dm0644 files/ujust/onedrive.just /usr/share/ujust/onedrive
