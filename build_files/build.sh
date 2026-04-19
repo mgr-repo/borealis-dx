@@ -51,22 +51,22 @@ unzip -q awscliv2.zip
 # Session Manager Plugin
 ############################
 
-curl -fsSL \
-  https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm \
-  -o session-manager-plugin.rpm
+# curl -fsSL \
+#   https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm \
+#   -o session-manager-plugin.rpm
 
-# Extract RPM payload only (do NOT install)
-rpm2cpio session-manager-plugin.rpm | cpio -idmv
+# # Extract RPM payload only (do NOT install)
+# rpm2cpio session-manager-plugin.rpm | cpio -idmv
 
-# Install files explicitly
-cp -a usr/local/sessionmanagerplugin /usr/local/
-install -Dm0755 usr/bin/session-manager-plugin /usr/bin/session-manager-plugin
-install -Dm0644 \
-  usr/lib/systemd/system/session-manager-plugin.service \
-  /usr/lib/systemd/system/session-manager-plugin.service
+# # Install files explicitly
+# cp -a usr/local/sessionmanagerplugin /usr/local/
+# install -Dm0755 usr/bin/session-manager-plugin /usr/bin/session-manager-plugin
+# install -Dm0644 \
+#   usr/lib/systemd/system/session-manager-plugin.service \
+#   /usr/lib/systemd/system/session-manager-plugin.service
 
-# Ensure runtime state directory exists
-mkdir -p /var/lib/amazon/sessionmanagerplugin
+# # Ensure runtime state directory exists
+# mkdir -p /var/lib/amazon/sessionmanagerplugin
 
 
 ############################
