@@ -28,24 +28,34 @@ x-scheme-handler/https=microsoft-edge.desktop
 text/html=microsoft-edge.desktop
 EOF
 
+# Manually run post-install tasks since tsflags=noscripts disables scripts
+# Install icons
+for icon in product_logo_16.png product_logo_24.png product_logo_32.png product_logo_48.png product_logo_64.png product_logo_128.png product_logo_256.png; do
+  size="$(echo ${icon} | sed 's/[^0-9]//g')"
+  xdg-icon-resource install --size "${size}" "/opt/microsoft/msedge/${icon}" "microsoft-edge" || true
+done
+
+# Update desktop database
+update-desktop-database > /dev/null 2>&1 || true
+
 TMPDIR="$(mktemp -d)"
 cd "$TMPDIR"
 
-############################
-# AWS CLI v2
-############################
+# ############################
+# # AWS CLI v2
+# ############################
 
-curl -fsSL \
-  "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
-  -o awscliv2.zip
+# curl -fsSL \
+#   "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
+#   -o awscliv2.zip
 
-dnf5 install -y unzip
-unzip -q awscliv2.zip
+# dnf5 install -y unzip
+# unzip -q awscliv2.zip
 
-./aws/install \
-  --bin-dir /usr/bin \
-  --install-dir /usr/lib/aws-cli \
-  --update
+# ./aws/install \
+#   --bin-dir /usr/bin \
+#   --install-dir /usr/lib/aws-cli \
+#   --update
 
 ############################
 # Session Manager Plugin
