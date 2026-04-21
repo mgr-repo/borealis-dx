@@ -88,4 +88,6 @@ rm -rf "$TMPDIR"
 dnf5 clean all
 
 
-install -Dm0644 /ctx/files/ujust/onedrive.just /usr/share/ujust/onedrive
+install -Dm0644 /ctx/files/ujust/onedrive.just /usr/share/ublue-os/just/onedrive.just
+# Install custom ujust entry to import optional recipes (60-custom.just)
+install -Dm0644 /ctx/files/ujust/60-custom.just /usr/share/ublue-os/just/60-custom.just
