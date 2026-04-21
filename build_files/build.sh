@@ -42,21 +42,21 @@ update-desktop-database > /dev/null 2>&1 || true
 TMPDIR="$(mktemp -d)"
 cd "$TMPDIR"
 
-############################
-# AWS CLI v2
-############################
+# ############################
+# # AWS CLI v2
+# ############################
 
-curl -fsSL \
-  "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
-  -o awscliv2.zip
+# curl -fsSL \
+#   "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
+#   -o awscliv2.zip
 
-dnf5 install -y unzip
-unzip -q awscliv2.zip
+# dnf5 install -y unzip
+# unzip -q awscliv2.zip
 
-./aws/install \
-  --bin-dir /usr/bin \
-  --install-dir /usr/lib/aws-cli \
-  --update
+# ./aws/install \
+#   --bin-dir /usr/bin \
+#   --install-dir /usr/lib/aws-cli \
+#   --update
 
 ############################
 # Session Manager Plugin
