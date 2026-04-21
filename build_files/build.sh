@@ -18,7 +18,6 @@ curl -fsSL https://packages.microsoft.com/yumrepos/edge/config.repo -o /etc/yum.
 dnf5 install -y microsoft-edge-stable --setopt=tsflags=noscripts
 dnf5 install -y onedrive
 
-
 # edge as default browser 
 mkdir -p /etc/xdg
 
