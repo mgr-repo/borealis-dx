@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # 2. Configuration
-TASK_DIR="./tasks"
+TASK_DIR="/ctx/tasks"
 
 echo "--- Starting Task Runner ---"
 
