@@ -78,6 +78,7 @@ Requires=ssh-agent.socket
 
 [Service]
 Type=oneshot
+Environment=SSH_AUTH_SOCK=%t/ssh-agent.socket
 ExecStart=$EXEC_START
 RemainAfterExit=yes
 
