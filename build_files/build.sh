@@ -4,11 +4,6 @@ set -ouex pipefail
 
 ### Install packages
 
-# Packages can be installed from any enabled yum repo on the image.
-# RPMfusion repos are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/43/x86_64/repoview/index.html&protocol=https&redirect=1
-
 
 # Microsoft Edge key and repo desc
 rpm --import https://packages.microsoft.com/keys/microsoft.asc
@@ -38,56 +33,13 @@ done
 # Update desktop database
 update-desktop-database > /dev/null 2>&1 || true
 
-TMPDIR="$(mktemp -d)"
-cd "$TMPDIR"
-
-# ############################
-# # AWS CLI v2
-# ############################
-
-# curl -fsSL \
-#   "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
-#   -o awscliv2.zip
-
-# dnf5 install -y unzip
-# unzip -q awscliv2.zip
-
-# ./aws/install \
-#   --bin-dir /usr/bin \
-#   --install-dir /usr/lib/aws-cli \
-#   --update
-
-############################
-# Session Manager Plugin
-############################
-
-# curl -fsSL \
-#   https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm \
-#   -o session-manager-plugin.rpm
-
-# # Extract RPM payload only (do NOT install)
-# rpm2cpio session-manager-plugin.rpm | cpio -idmv
-
-# # Install files explicitly
-# cp -a usr/local/sessionmanagerplugin /usr/local/
-# install -Dm0755 usr/bin/session-manager-plugin /usr/bin/session-manager-plugin
-# install -Dm0644 \
-#   usr/lib/systemd/system/session-manager-plugin.service \
-#   /usr/lib/systemd/system/session-manager-plugin.service
-
-# # Ensure runtime state directory exists
-# mkdir -p /var/lib/amazon/sessionmanagerplugin
-
-
-############################
-# Cleanup
-############################
-
-cd /
-rm -rf "$TMPDIR"
 dnf5 clean all
 
-
+### Install ujust recipes and helper scripts
 install -Dm0644 /ctx/files/ujust/onedrive.just /usr/share/ublue-os/just/onedrive.just
 # Install custom ujust entry to import optional recipes (60-custom.just)
 install -Dm0644 /ctx/files/ujust/60-custom.just /usr/share/ublue-os/just/60-custom.just
+# Install helper scripts for ujust recipes
+install -Dm0755 /ctx/files/scripts/ssh-add-user.sh /usr/share/ublue-os/just/scripts/ssh-add-user.sh
+install -Dm0755 /ctx/files/scripts/onedrive.sh /usr/share/ublue-os/just/scripts/onedrive.sh
+install -Dm0755 /ctx/files/scripts/aws-smp-install.sh /usr/share/ublue-os/just/scripts/aws-smp-install.sh
