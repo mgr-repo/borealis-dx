@@ -1,5 +1,9 @@
 ### Install ujust recipes and helper scripts
 install -Dm0644 /ctx/files/ujust/onedrive.just /usr/share/ublue-os/just/onedrive.just
+install -Dm0644 /ctx/files/ujust/aws-smp.just /usr/share/ublue-os/just/aws-smp.just
+install -Dm0644 /ctx/files/ujust/ssh-key-agent.just /usr/share/ublue-os/just/ssh-key-agent.just
+
+
 # Install custom ujust entry to import optional recipes (60-custom.just)
 install -Dm0644 /ctx/files/ujust/60-custom.just /usr/share/ublue-os/just/60-custom.just
 # Install helper scripts for ujust recipes
