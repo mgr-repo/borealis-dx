@@ -1,45 +1,36 @@
 #!/bin/bash
 
-set -ouex pipefail
+# 1. The Safety Harness
+# e: exit on error, u: error on undefined vars, o pipefail: catch pipe errors
+set -euo pipefail
 
-### Install packages
+# 2. Configuration
+TASK_DIR="./tasks"
 
+echo "--- Starting Task Runner ---"
 
-# Microsoft Edge key and repo desc
-rpm --import https://packages.microsoft.com/keys/microsoft.asc
-curl -fsSL https://packages.microsoft.com/yumrepos/edge/config.repo -o /etc/yum.repos.d/microsoft-edge.repo
+# 3. Validation
+if [ ! -d "$TASK_DIR" ]; then
+    echo "Error: Directory '$TASK_DIR' not found."
+    exit 1
+fi
 
-# this installs edge and onedrive
-dnf5 install -y microsoft-edge-stable --setopt=tsflags=noscripts
-dnf5 install -y onedrive
+# 4. The Execution Loop
+# We use a 'for' loop which naturally sorts 01, 02, 03...
+for script in "$TASK_DIR"/[0-9]*.sh; do
+    
+    # Handle case where no files match the pattern
+    [ -e "$script" ] || { echo "No task scripts found."; exit 0; }
 
-# edge as default browser 
-mkdir -p /etc/xdg
+    echo "[RUNNING] $(basename "$script")"
+    
+    # Run the script. 
+    # Because 'set -e' is active in THIS script, if the command below 
+    # returns a non-zero exit code, the runner will stop immediately.
+    bash "$script"
 
-cat > /etc/xdg/mimeapps.list <<'EOF'
-[Default Applications]
-x-scheme-handler/http=microsoft-edge.desktop
-x-scheme-handler/https=microsoft-edge.desktop
-text/html=microsoft-edge.desktop
-EOF
-
-# Manually run post-install tasks since tsflags=noscripts disables scripts
-# Install icons
-for icon in product_logo_16.png product_logo_24.png product_logo_32.png product_logo_48.png product_logo_64.png product_logo_128.png product_logo_256.png; do
-  size="$(echo ${icon} | sed 's/[^0-9]//g')"
-  xdg-icon-resource install --size "${size}" "/opt/microsoft/msedge/${icon}" "microsoft-edge" || true
+    echo "[SUCCESS] $(basename "$script") completed."
+    echo "----------------------------"
 done
 
-# Update desktop database
-update-desktop-database > /dev/null 2>&1 || true
-
-dnf5 clean all
-
-### Install ujust recipes and helper scripts
-install -Dm0644 /ctx/files/ujust/onedrive.just /usr/share/ublue-os/just/onedrive.just
-# Install custom ujust entry to import optional recipes (60-custom.just)
-install -Dm0644 /ctx/files/ujust/60-custom.just /usr/share/ublue-os/just/60-custom.just
-# Install helper scripts for ujust recipes
-install -Dm0755 /ctx/files/scripts/ssh-add-user.sh /usr/share/ublue-os/just/scripts/ssh-add-user.sh
-install -Dm0755 /ctx/files/scripts/onedrive.sh /usr/share/ublue-os/just/scripts/onedrive.sh
-install -Dm0755 /ctx/files/scripts/aws-smp-install.sh /usr/share/ublue-os/just/scripts/aws-smp-install.sh
+echo "All tasks finished successfully."
