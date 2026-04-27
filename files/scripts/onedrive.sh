@@ -12,12 +12,12 @@ cmd=${1:-}
 case "$cmd" in
   auth)
     echo ""
-    echo "🔐 OneDrive authentication"
+    echo "🔐 OneDrive (re)authentication"
     echo ""
     echo "A browser window will open. Log in with your Microsoft account to authorize OneDrive."
     echo ""
 
-    onedrive
+    onedrive --reauth
 
     echo ""
     echo "✅ Authentication finished."
