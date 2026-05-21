@@ -16,11 +16,33 @@ case "$cmd" in
     echo ""
     echo "A browser window will open. Log in with your Microsoft account to authorize OneDrive."
     echo ""
+    if systemctl --user is-enabled onedrive.service >/dev/null 2>&1; then
+      echo "ℹ OneDrive service is already enabled. Stop it before reauthenticating to avoid conflicts."
+      systemctl --user stop onedrive.service
+    fi
 
-    onedrive --reauth
-
-    echo ""
-    echo "✅ Authentication finished."
+    MAX_ATTEMPTS=3
+    attempt=1
+    while true; do
+      echo "▶ Reauth attempt $attempt of $MAX_ATTEMPTS..."
+      if onedrive --reauth; then
+        echo "✅ Authentication succeeded."
+        break
+      else
+        echo "⚠ Authentication attempt $attempt failed."
+        if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+          echo "❌ All authentication attempts failed."
+          exit 1
+        fi
+        attempt=$((attempt + 1))
+        echo "⏳ Waiting before retrying..."
+        sleep 2
+      fi
+    done
+    if systemctl --user is-enabled onedrive.service >/dev/null 2>&1; then
+      echo "ℹ Restart it after reauthentication to apply changes."
+      systemctl --user restart onedrive.service
+    fi
     ;;
   service)
     echo ""
