@@ -16,9 +16,15 @@ case "$cmd" in
     echo ""
     echo "A browser window will open. Log in with your Microsoft account to authorize OneDrive."
     echo ""
-
+    if systemctl --user is-enabled onedrive.service >/dev/null 2>&1; then
+      echo "ℹ OneDrive service is already enabled. Stop it before reauthenticating to avoid conflicts."
+      systemctl --user stop onedrive.service
+    fi
     onedrive --reauth
-
+    if systemctl --user is-enabled onedrive.service >/dev/null 2>&1; then
+      echo "ℹ Restart it after reauthentication to apply changes."
+      systemctl --user restart onedrive.service
+    fi
     echo ""
     echo "✅ Authentication finished."
     ;;
