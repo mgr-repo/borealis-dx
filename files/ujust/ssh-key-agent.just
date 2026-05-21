@@ -1,4 +1,4 @@
-# Add your SSH key on startup to ssh-agent.  
+# Add your SSH key on startup to ssh-agent.
 [group('BI helpers')]
 ssh-key-agent-enable:
     #!/usr/bin/bash
