@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '05 10 * * *'  # 10:05am UTC everyday
+    - cron: '0 */2 * * *'  # every 2 hours
   push:
     branches:
       - main
@@ -17,6 +17,8 @@ env:
   IMAGE_DESC: "My Customized Universal Blue Image"
   IMAGE_KEYWORDS: "bootc,ublue,universal-blue"
   IMAGE_LOGO_URL: "https://avatars.githubusercontent.com/u/120078124?s=200&v=4"  # Put your own image here for a fancy profile on https://artifacthub.io/!
+  # Keep this aligned with the runtime base image FROM in Containerfile.
+  BASE_IMAGE_REF: "ghcr.io/ublue-os/aurora-dx:latest"
   IMAGE_NAME: "${{ github.event.repository.name }}"  # output image name, usually same as repo name
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
   DEFAULT_TAG: "latest"
@@ -37,7 +39,65 @@ jobs:
       id-token: write
 
     steps:
+      - name: Restore previous base image hash
+        id: cache_restore
+        uses: actions/cache/restore@v4
+        with:
+          path: .github/.cache/base-image
+          key: base-image-hash-${{ runner.os }}-${{ github.repository }}-${{ github.run_id }}
+          restore-keys: |
+            base-image-hash-${{ runner.os }}-${{ github.repository }}-
+
+      - name: Detect base image manifest change
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE_IMAGE_REF='${{ env.BASE_IMAGE_REF }}'
+          if [[ -z "$BASE_IMAGE_REF" ]]; then
+            echo "BASE_IMAGE_REF is empty" >&2
+            exit 1
+          fi
+
+          mkdir -p .github/.cache/base-image
+          PREVIOUS_FILE=.github/.cache/base-image/manifest_hash
+          PREVIOUS_HASH=""
+          if [[ -f "$PREVIOUS_FILE" ]]; then
+            PREVIOUS_HASH=$(cat "$PREVIOUS_FILE")
+          fi
+
+          CURRENT_HASH=$(docker manifest inspect "$BASE_IMAGE_REF" | sha256sum | awk '{print $1}')
+          echo "$CURRENT_HASH" > "$PREVIOUS_FILE"
+
+          SHOULD_BUILD=true
+          if [[ "${{ github.event_name }}" == "schedule" ]] && [[ -n "$PREVIOUS_HASH" ]] && [[ "$CURRENT_HASH" == "$PREVIOUS_HASH" ]]; then
+            SHOULD_BUILD=false
+          fi
+
+          echo "should_build=$SHOULD_BUILD" >> "$GITHUB_OUTPUT"
+          echo "base_image_ref=$BASE_IMAGE_REF" >> "$GITHUB_OUTPUT"
+          echo "base_manifest_hash=$CURRENT_HASH" >> "$GITHUB_OUTPUT"
+
+          if [[ "$SHOULD_BUILD" == "false" ]]; then
+            echo "No base image changes detected for scheduled run."
+          else
+            echo "Base image changed (or non-scheduled event); proceeding with build."
+          fi
+
+      - name: Save current base image hash
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .github/.cache/base-image
+          key: base-image-hash-${{ runner.os }}-${{ github.repository }}-${{ github.run_id }}
+
+      - name: Early exit summary
+        if: github.event_name == 'schedule' && steps.detect.outputs.should_build != 'true'
+        run: echo "Skipping scheduled build because BASE_IMAGE_REF digest is unchanged."
+
       - name: Prepare environment
+        if: steps.detect.outputs.should_build == 'true'
         run: |
           # Lowercase the image uri
           echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
@@ -45,13 +105,16 @@ jobs:
 
       # These stage versions are pinned by https://github.com/renovatebot/renovate
       - name: Checkout
+        if: steps.detect.outputs.should_build == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       # This is optional, but if you see that your builds are way too big for the runners, you can enable this by uncommenting the following lines:
       - name: Maximize build space
+        if: steps.detect.outputs.should_build == 'true'
         uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
 
       - name: Get current date
+        if: steps.detect.outputs.should_build == 'true'
         id: date
         run: |
           # This generates a timestamp like what is defined on the ArtifactHub documentation
@@ -63,6 +126,7 @@ jobs:
       # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
       # The metadata by itself is not going to do anything, you choose if you want your image to be on ArtifactHub or not.
       - name: Image Metadata
+        if: steps.detect.outputs.should_build == 'true'
         uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6.1.0
         id: metadata
         with:
@@ -84,6 +148,8 @@ jobs:
             org.opencontainers.image.url=https://github.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/tree/${{ github.sha }}
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.version=${{ env.DEFAULT_TAG }}.{{date 'YYYYMMDD'}}
+            org.opencontainers.image.base.name=${{ steps.detect.outputs.base_image_ref }}
+            org.opencontainers.image.base.digest=${{ steps.detect.outputs.base_manifest_hash }}
             io.artifacthub.package.deprecated=false
             io.artifacthub.package.keywords=${{ env.IMAGE_KEYWORDS }}
             io.artifacthub.package.license=Apache-2.0
@@ -94,6 +160,7 @@ jobs:
           sep-annotations: " "
 
       - name: Build Image
+        if: steps.detect.outputs.should_build == 'true'
         id: build_image
         uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2
         with:
@@ -134,7 +201,7 @@ jobs:
       # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
       - name: Login to GitHub Container Registry
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: steps.detect.outputs.should_build == 'true' && github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -142,7 +209,7 @@ jobs:
 
       - name: Push To GHCR
         uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: steps.detect.outputs.should_build == 'true' && github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         id: push
         env:
           REGISTRY_USER: ${{ github.actor }}
@@ -160,12 +227,12 @@ jobs:
       # to consume. For more details, review the image signing section of the README.
       - name: Install Cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: steps.detect.outputs.should_build == 'true' && github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         with:
           cosign-release: 'v2.6.1'
 
       - name: Sign container image
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: steps.detect.outputs.should_build == 'true' && github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         run: |
           IMAGE_FULL="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}"
           for tag in ${{ steps.metadata.outputs.tags }}; do
@@ -177,7 +244,7 @@ jobs:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
       - name: Cleanup old image versions
         uses: actions/delete-package-versions@v5
-        if: github.event_name != 'pull_request'
+        if: steps.detect.outputs.should_build == 'true' && github.event_name != 'pull_request'
         with:
           package-name: ${{ env.IMAGE_NAME }}
           package-type: 'container'
