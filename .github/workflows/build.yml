@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 */2 * * *'  # every 2 hours
+    - cron: '20 0,2,4,6,8,10,12,14,16,18,20,22 * * *'  # every 2 hours (at :20 to avoid high-load start-of-hour)
   push:
     branches:
       - main
