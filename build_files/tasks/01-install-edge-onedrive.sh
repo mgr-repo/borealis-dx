@@ -10,7 +10,7 @@ rpm --import https://packages.microsoft.com/keys/microsoft.asc
 curl -fsSL https://packages.microsoft.com/yumrepos/edge/config.repo -o /etc/yum.repos.d/microsoft-edge.repo
 
 # this installs edge and onedrive
-dnf5 install -y --repo=edge-yum microsoft-edge-stable --setopt=tsflags=noscripts
+dnf5 install -y microsoft-edge-stable --setopt=tsflags=noscripts
 dnf5 install -y --repo=edge-yum onedrive
 
 fc-cache -fv
