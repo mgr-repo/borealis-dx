@@ -162,7 +162,7 @@ jobs:
       - name: Build Image
         if: steps.detect.outputs.should_build == 'true'
         id: build_image
-        uses: redhat-actions/buildah-build@27e5954dfd56a621f706827f2de689dc955e8711 # v3.0.1
+        uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
         with:
           containerfiles: |
             ./Containerfile
