@@ -4,7 +4,7 @@ COPY build_files /
 COPY files /files
 
 # Base Image
-FROM ghcr.io/ublue-os/aurora-dx:stable
+FROM ghcr.io/ublue-os/aurora-dx:stable@sha256:c808afe7612dc20ad6a200dffa18e9f3d032d8e68a53b327f9f37e8fdf9f8bbc
 
 ## Other possible base images include:
 # FROM ghcr.io/ublue-os/bazzite:latest
