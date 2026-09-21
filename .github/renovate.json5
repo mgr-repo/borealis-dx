@@ -6,6 +6,19 @@
 
   "rebaseWhen": "never",
 
+  // Tracks pinned "name := \"image:tag@digest\"" lines in the Justfile (e.g. chunkah_image)
+  // so Renovate can open PRs when those digests change, same as ublue-os/aurora does.
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^Justfile$/"],
+      "matchStrings": [
+        "(?<justName>.+?)\\s:=\\s\"(?<packageName>\\S+):(?<currentValue>\\S+)@(?<currentDigest>sha256:[a-f0-9]+?)\"",
+      ],
+      "datasourceTemplate": "docker",
+    },
+  ],
+
   "packageRules": [
     {
       "automerge": true,
