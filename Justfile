@@ -1,6 +1,9 @@
 export image_name := env("IMAGE_NAME", "image-template")
 export default_tag := env("DEFAULT_TAG", "latest")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
+# https://github.com/coreos/chunkah, digest tracked by the Renovate customManager in .github/renovate.json5
+# (must stay a literal "image:tag@digest" string, no env()/shell() wrapper, for that regex to match)
+export chunkah_image := "quay.io/coreos/chunkah:latest@sha256:ff8b8b466a942ec6000445d4001fc661e2fc5a952ad9ee29b4de9ab09d1d1708"
 
 alias build-vm := build-qcow2
 alias rebuild-vm := rebuild-qcow2
@@ -99,6 +102,61 @@ build $target_image=image_name $tag=default_tag:
         --pull=newer \
         --tag "${target_image}:${tag}" \
         .
+
+# Split the image into smaller, more resumable layers using chunkah.
+# https://github.com/coreos/chunkah
+[group('Image')]
+rechunk $target_image=image_name $tag=default_tag:
+    #!/usr/bin/env bash
+    set -eoux pipefail
+
+    if command -v cosign &> /dev/null; then
+        cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp="github.com/coreos/chunkah/.github/workflows/*" \
+            "${chunkah_image}"
+    else
+        echo "cosign not found, skipping chunkah image verification (expected for local runs)"
+    fi
+
+    CHUNKAH_OUTPUT_DIR="$(mktemp -d)"
+    CHUNKAH_CONFIG_FILE="$(mktemp)"
+    trap 'rm -f "${CHUNKAH_CONFIG_FILE}"; rm -rf "${CHUNKAH_OUTPUT_DIR}"' EXIT
+
+    podman inspect -t image "${target_image}:${tag}" > "${CHUNKAH_CONFIG_FILE}"
+
+    podman run --rm \
+        --mount=type=image,src="${target_image}:${tag}",target=/chunkah \
+        -v "${CHUNKAH_CONFIG_FILE}:/chunkah-config.json:ro,Z" \
+        -v "${CHUNKAH_OUTPUT_DIR}:/run/out:Z" \
+        "${chunkah_image}" \
+        build \
+        --verbose \
+        --compressed \
+        --max-layers 256 \
+        --prune /sysroot/ \
+        --label ostree.commit- --label ostree.final-diffid- \
+        --config /chunkah-config.json \
+        --output oci:/run/out/chunked
+
+    CHUNKED_IMAGE="$(podman pull "oci:${CHUNKAH_OUTPUT_DIR}/chunked")"
+    podman tag "${CHUNKED_IMAGE}" "${target_image}:${tag}"
+
+# Re-tag every alias tag (e.g. from docker/metadata-action) onto the current image id.
+# Used after `rechunk` so all tags point at the rechunked image, not the pre-rechunk one.
+[group('Utility')]
+tag-images $target_image=image_name $tag=default_tag $tags="":
+    #!/usr/bin/env bash
+    set -eoux pipefail
+
+    IMAGE=$(podman inspect -t image "${target_image}:${tag}" | jq -r '.[0].Id')
+    podman untag "${target_image}:${tag}"
+
+    for t in ${tags}; do
+        podman tag "${IMAGE}" "${target_image}:${t}"
+    done
+
+    podman images
 
 # Command: _rootful_load_image
 # Description: This script checks if the current user is root or running under sudo. If not, it attempts to resolve the image tag using podman inspect.
