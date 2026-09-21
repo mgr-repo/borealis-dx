@@ -161,11 +161,12 @@ jobs:
 
       # Installed here (rather than just before signing) because the rechunk step below
       # also needs cosign, to verify the chunkah image's provenance before running it.
+      # v2.6.1 fails to find chunkah's signature ("no signatures found"); needs v3.x.
       - name: Install Cosign
         if: steps.detect.outputs.should_build == 'true'
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         with:
-          cosign-release: 'v2.6.1'
+          cosign-release: 'v3.1.3'
 
       - name: Build Image
         if: steps.detect.outputs.should_build == 'true'
@@ -232,7 +233,8 @@ jobs:
         run: |
           IMAGE_FULL="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}"
           for tag in ${{ steps.metadata.outputs.tags }}; do
-            cosign sign -y --key env://COSIGN_PRIVATE_KEY $IMAGE_FULL:$tag
+            # Old bundle format keeps compatibility with cosign v2-style verification (e.g. rpm-ostree/bootc).
+            cosign sign -y --new-bundle-format=false --use-signing-config=false --key env://COSIGN_PRIVATE_KEY $IMAGE_FULL:$tag
           done
         env:
           TAGS: ${{ steps.push.outputs.digest }}
