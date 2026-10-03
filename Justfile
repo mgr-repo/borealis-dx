@@ -3,7 +3,7 @@ export default_tag := env("DEFAULT_TAG", "latest")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
 # https://github.com/coreos/chunkah, digest tracked by the Renovate customManager in .github/renovate.json5
 # (must stay a literal "image:tag@digest" string, no env()/shell() wrapper, for that regex to match)
-export chunkah_image := "quay.io/coreos/chunkah:latest@sha256:ff8b8b466a942ec6000445d4001fc661e2fc5a952ad9ee29b4de9ab09d1d1708"
+export chunkah_image := "quay.io/coreos/chunkah:latest@sha256:8b56578258d1d10d3e1c7b0f71a4d05317c5fde331c4f483576a1b60e65f0cea"
 
 alias build-vm := build-qcow2
 alias rebuild-vm := rebuild-qcow2
